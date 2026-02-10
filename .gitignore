@@ -11,6 +11,9 @@
 !Resources/
 !Resources/*.html
 
+# Documentation
+!README.md
+
 # Git config
 !.gitignore
 
@@ -18,6 +21,7 @@
 *.backup
 *.sh
 *.md
+!README.md
 *.app
 *.dmg
 *.zip
