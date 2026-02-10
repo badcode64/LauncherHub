@@ -1,43 +1,26 @@
-# WHITELIST MODE - Deny everything by default, allow only specific files
-# This ensures credentials and build outputs never get committed
+# WHITELIST MODE - Only source code allowed
 
 # Deny everything
 *
 
-# Allow directories (so we can traverse)
+# Allow directories
 !*/
 
-# Allow specific source files
+# Source code only
 !LauncherHub.swift
-!LauncherHub.swift.backup
-
-# Allow Resources
 !Resources/
 !Resources/*.html
 
-# Allow scripts
-!build.sh
-!run.sh
-!create-dmg.sh
-!create-icon.sh
-!sign.sh
-!notarize.sh
-
-# Allow documentation
-!README.md
-!CHANGELOG.md
-!GITHUB.md
-!NOTARIZATION.md
-!QUICKREF.md
-!LICENSE
-
-# Allow config files
+# Git config
 !.gitignore
 
-# Explicitly deny sensitive files (redundant but clear)
-.notarization-credentials.sh
+# Deny everything else
+*.backup
+*.sh
+*.md
 *.app
 *.dmg
 *.zip
 *.icns
 .DS_Store
+.notarization-credentials.sh
