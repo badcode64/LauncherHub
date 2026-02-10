@@ -1,0 +1,684 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html, body {
+    height: 100%;
+    overflow: hidden;
+}
+body {
+    font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+    background: #f5f5f7;
+    display: flex;
+    flex-direction: column;
+}
+.content-area {
+    flex: 1;
+    overflow-y: auto;
+    padding: 20px;
+    padding-bottom: 10px;
+}
+h2 { margin-bottom: 20px; color: #333; }
+.form-group { margin-bottom: 16px; }
+label { display: block; margin-bottom: 6px; font-weight: 500; color: #555; }
+input, select, textarea {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    font-size: 14px;
+    background: white;
+}
+input:focus, select:focus, textarea:focus {
+    outline: none;
+    border-color: #007aff;
+}
+.row { display: flex; gap: 12px; }
+.row .form-group { flex: 1; }
+.type-fields { display: none; }
+.type-fields.active { display: block; }
+.browse-row { display: flex; gap: 8px; }
+.browse-row input { flex: 1; }
+.browse-btn {
+    padding: 10px 16px;
+    background: #007aff;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 500;
+}
+.browse-btn:hover { background: #0056b3; }
+.colors { display: flex; gap: 8px; margin-top: 8px; }
+.color-btn {
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    border: 3px solid transparent;
+    cursor: pointer;
+}
+.color-btn.selected { border-color: #333; }
+.buttons {
+    display: flex;
+    justify-content: space-between;
+    padding: 16px 20px;
+    background: #f5f5f7;
+    border-top: 1px solid #ddd;
+    flex-shrink: 0;
+}
+.btn {
+    padding: 12px 24px;
+    border: none;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+}
+.btn-save { background: #007aff; color: white; }
+.btn-save:hover { background: #0056b3; }
+.btn-cancel { background: #e5e5e5; color: #333; }
+.btn-cancel:hover { background: #d5d5d5; }
+.btn-delete { background: #ff3b30; color: white; }
+.btn-delete:hover { background: #d63028; }
+.btn-duplicate { background: #8b5cf6; color: white; }
+.btn-duplicate:hover { background: #7c3aed; }
+.left-btns { display: flex; gap: 8px; }
+.right-btns { display: flex; gap: 8px; }
+.hint { font-size: 12px; color: #888; margin-top: 4px; }
+.ssh-row { display: flex; gap: 8px; }
+.ssh-row input:first-child { flex: 2; }
+.ssh-row input:last-child { flex: 1; }
+.icon-section { margin-top: 8px; }
+.icon-category { 
+    font-size: 11px; 
+    color: #888; 
+    margin: 8px 0 4px 0; 
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+.icon-category:first-child { margin-top: 0; }
+.icon-row { 
+    display: flex; 
+    flex-wrap: wrap;
+    gap: 4px;
+}
+.icon-btn {
+    width: 36px; height: 36px;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    background: white;
+    cursor: pointer;
+    font-size: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+.icon-btn:hover { background: #e8f4ff; border-color: #007aff; }
+</style>
+</head>
+<body>
+<div class="content-area">
+<h2>{{DIALOG_TITLE}}</h2>
+
+<div class="form-group">
+    <label>Type</label>
+    <select id="actionType" onchange="typeChanged()">
+        <option value="App">🎯 Application - Launch macOS app</option>
+        <option value="VS Code">📂 VS Code - Open folder in VS Code</option>
+        <option value="Finder">📁 Finder - Open folder/file</option>
+        <option value="Chrome">🌐 Chrome - Open URL</option>
+        <option value="Terminal">💻 Terminal/SSH - Run command or SSH</option>
+        <option value="Shell">⚡ Shell Command - Run script</option>
+    </select>
+</div>
+
+<div class="form-group">
+    <label>Title</label>
+    <input type="text" id="title" placeholder="My Project" autocapitalize="off" autocomplete="off" autocorrect="off" spellcheck="false">
+</div>
+
+<!-- App fields -->
+<div id="fields-app" class="type-fields">
+    <div class="form-group">
+        <label>Application</label>
+        <div class="browse-row">
+            <input type="text" id="appName" placeholder="Safari" autocapitalize="off" autocomplete="off" autocorrect="off" spellcheck="false">
+            <button class="browse-btn" onclick="browseApp()">Browse Apps...</button>
+        </div>
+        <div class="hint">App name (e.g., Safari, Notes, Xcode) or full path to .app</div>
+    </div>
+</div>
+
+<!-- VS Code / Finder fields -->
+<div id="fields-folder" class="type-fields">
+    <div class="form-group">
+        <label>Folder Path</label>
+        <div class="browse-row">
+            <input type="text" id="folderPath" placeholder="/Users/..." autocapitalize="off" autocomplete="off" autocorrect="off" spellcheck="false">
+            <button class="browse-btn" onclick="browse()">Browse...</button>
+        </div>
+    </div>
+</div>
+
+<!-- Chrome fields -->
+<div id="fields-url" class="type-fields">
+    <div class="form-group">
+        <label>URL</label>
+        <input type="text" id="urlPath" placeholder="https://example.com" autocapitalize="off" autocomplete="off" autocorrect="off" spellcheck="false">
+    </div>
+</div>
+
+<!-- Terminal/SSH fields -->
+<div id="fields-ssh" class="type-fields">
+    <div class="form-group">
+        <label>Connection Type</label>
+        <select id="sshType" onchange="sshTypeChanged()">
+            <option value="ssh">SSH Connection</option>
+            <option value="command">Terminal Command</option>
+        </select>
+    </div>
+    <div id="ssh-fields">
+        <div class="form-group">
+            <label>Host</label>
+            <input type="text" id="sshHost" placeholder="192.168.1.10 or server.com" autocapitalize="off" autocomplete="off" autocorrect="off" spellcheck="false">
+        </div>
+        <div class="row">
+            <div class="form-group">
+                <label>Username</label>
+                <input type="text" id="sshUser" placeholder="root" autocapitalize="off" autocomplete="off" autocorrect="off" spellcheck="false">
+            </div>
+            <div class="form-group">
+                <label>Port (optional)</label>
+                <input type="text" id="sshPort" placeholder="22" autocapitalize="off" autocomplete="off" autocorrect="off" spellcheck="false">
+            </div>
+        </div>
+    </div>
+    <div id="terminal-command-field" style="display:none">
+        <div class="form-group">
+            <label>Command</label>
+            <input type="text" id="terminalCmd" placeholder="cd /path && ./script.sh" autocapitalize="off" autocomplete="off" autocorrect="off" spellcheck="false">
+        </div>
+    </div>
+</div>
+
+<!-- Shell fields -->
+<div id="fields-shell" class="type-fields">
+    <div class="form-group">
+        <label>Shell Command</label>
+        <textarea id="shellCmd" rows="3" placeholder="echo 'Hello'&#10;ls -la" autocapitalize="off" autocomplete="off" autocorrect="off" spellcheck="false"></textarea>
+        <div class="hint">Runs with /bin/zsh -l -c</div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="form-group" style="flex: 2;">
+        <label>Icon</label>
+        <input type="text" id="icon" placeholder="📁" style="width: 80px; font-size: 20px;">
+        <div class="icon-section">
+            <div class="icon-category">📂 Files & Folders</div>
+            <div class="icon-row">
+                <button type="button" class="icon-btn" onclick="selectIcon('📁')">📁</button>
+                <button type="button" class="icon-btn" onclick="selectIcon('📂')">📂</button>
+                <button type="button" class="icon-btn" onclick="selectIcon('📄')">📄</button>
+                <button type="button" class="icon-btn" onclick="selectIcon('📝')">📝</button>
+                <button type="button" class="icon-btn" onclick="selectIcon('🗂️')">🗂️</button>
+                <button type="button" class="icon-btn" onclick="selectIcon('📦')">📦</button>
+                <button type="button" class="icon-btn" onclick="selectIcon('💾')">💾</button>
+                <button type="button" class="icon-btn" onclick="selectIcon('🗄️')">🗄️</button>
+                <button type="button" class="icon-btn" onclick="selectIcon('📚')">📚</button>
+                <button type="button" class="icon-btn" onclick="selectIcon('📋')">📋</button>
+                <button type="button" class="icon-btn" onclick="selectIcon('📑')">📑</button>
+                <button type="button" class="icon-btn" onclick="selectIcon('📰')">📰</button>
+                <button type="button" class="icon-btn" onclick="selectIcon('🗃️')">🗃️</button>
+                <button type="button" class="icon-btn" onclick="selectIcon('🗳️')">🗳️</button>
+                <button type="button" class="icon-btn" onclick="selectIcon('📥')">📥</button>
+                <button type="button" class="icon-btn" onclick="selectIcon('📤')">📤</button>
+            </div>
+            
+            <div class="icon-category">💻 Dev & Tech</div>
+            <div class="icon-row">
+                <button type="button" class="icon-btn" onclick="selectIcon('💻')">💻</button>
+                <button type="button" class="icon-btn" onclick="selectIcon('🖥️')">🖥️</button>
+                <button type="button" class="icon-btn" onclick="selectIcon('⚙️')">⚙️</button>
+                <button type="button" class="icon-btn" onclick="selectIcon('🔧')">🔧</button>
+                <button type="button" class="icon-btn" onclick="selectIcon('🛠️')">🛠️</button>
+                <button type="button" class="icon-btn" onclick="selectIcon('⚡')">⚡</button>
+                <button type="button" class="icon-btn" onclick="selectIcon('🚀')">🚀</button>
+                <button type="button" class="icon-btn" onclick="selectIcon('🐛')">🐛</button>
+                <button type="button" class="icon-btn" onclick="selectIcon('🧪')">🧪</button>
+                <button type="button" class="icon-btn" onclick="selectIcon('🔬')">🔬</button>
+                <button type="button" class="icon-btn" onclick="selectIcon('⌨️')">⌨️</button>
+                <button type="button" class="icon-btn" onclick="selectIcon('🖱️')">🖱️</button>
+                <button type="button" class="icon-btn" onclick="selectIcon('🖨️')">🖨️</button>
+                <button type="button" class="icon-btn" onclick="selectIcon('💿')">💿</button>
+                <button type="button" class="icon-btn" onclick="selectIcon('📀')">📀</button>
+                <button type="button" class="icon-btn" onclick="selectIcon('🔌')">🔌</button>
+            </div>
+            
+            <div class="icon-category">🌐 Web & Network</div>
+            <div class="icon-row">
+                <button type="button" class="icon-btn" onclick="selectIcon('🌐')">🌐</button>
+                <button type="button" class="icon-btn" onclick="selectIcon('🔗')">🔗</button>
+                <button type="button" class="icon-btn" onclick="selectIcon('☁️')">☁️</button>
+                <button type="button" class="icon-btn" onclick="selectIcon('🌍')">🌍</button>
+                <button type="button" class="icon-btn" onclick="selectIcon('🌎')">🌎</button>
+                <button type="button" class="icon-btn" onclick="selectIcon('🌏')">🌏</button>
+                <button type="button" class="icon-btn" onclick="selectIcon('📡')">📡</button>
+                <button type="button" class="icon-btn" onclick="selectIcon('📶')">📶</button>
+                <button type="button" class="icon-btn" onclick="selectIcon('🛜')">🛜</button>
+                <button type="button" class="icon-btn" onclick="selectIcon('🔔')">🔔</button>
+                <button type="button" class="icon-btn" onclick="selectIcon('🔕')">🔕</button>
+                <button type="button" class="icon-btn" onclick="selectIcon('📲')">📲</button>
+                <button type="button" class="icon-btn" onclick="selectIcon('📱')">📱</button>
+                <button type="button" class="icon-btn" onclick="selectIcon('📞')">📞</button>
+                <button type="button" class="icon-btn" onclick="selectIcon('☎️')">☎️</button>
+                <button type="button" class="icon-btn" onclick="selectIcon('📠')">📠</button>
+            </div>
+            
+            <div class="icon-category">📧 Communication</div>
+            <div class="icon-row">
+                <button type="button" class="icon-btn" onclick="selectIcon('📧')">📧</button>
+                <button type="button" class="icon-btn" onclick="selectIcon('📩')">📩</button>
+                <button type="button" class="icon-btn" onclick="selectIcon('📨')">📨</button>
+                <button type="button" class="icon-btn" onclick="selectIcon('📬')">📬</button>
+                <button type="button" class="icon-btn" onclick="selectIcon('📮')">📮</button>
+                <button type="button" class="icon-btn" onclick="selectIcon('💬')">💬</button>
+                <button type="button" class="icon-btn" onclick="selectIcon('💭')">💭</button>
+                <button type="button" class="icon-btn" onclick="selectIcon('🗨️')">🗨️</button>
+                <button type="button" class="icon-btn" onclick="selectIcon('🗣️')">🗣️</button>
+                <button type="button" class="icon-btn" onclick="selectIcon('👤')">👤</button>
+                <button type="button" class="icon-btn" onclick="selectIcon('👥')">👥</button>
+                <button type="button" class="icon-btn" onclick="selectIcon('👨‍💻')">👨‍💻</button>
+                <button type="button" class="icon-btn" onclick="selectIcon('👩‍💻')">👩‍💻</button>
+                <button type="button" class="icon-btn" onclick="selectIcon('🧑‍💻')">🧑‍💻</button>
+                <button type="button" class="icon-btn" onclick="selectIcon('👨‍🔧')">👨‍🔧</button>
+                <button type="button" class="icon-btn" onclick="selectIcon('👩‍🔧')">👩‍🔧</button>
+            </div>
+            
+            <div class="icon-category">🔐 Security & Keys</div>
+            <div class="icon-row">
+                <button type="button" class="icon-btn" onclick="selectIcon('🔐')">🔐</button>
+                <button type="button" class="icon-btn" onclick="selectIcon('🔑')">🔑</button>
+                <button type="button" class="icon-btn" onclick="selectIcon('🗝️')">🗝️</button>
+                <button type="button" class="icon-btn" onclick="selectIcon('🔒')">🔒</button>
+                <button type="button" class="icon-btn" onclick="selectIcon('🔓')">🔓</button>
+                <button type="button" class="icon-btn" onclick="selectIcon('🛡️')">🛡️</button>
+                <button type="button" class="icon-btn" onclick="selectIcon('🔏')">🔏</button>
+                <button type="button" class="icon-btn" onclick="selectIcon('🔍')">🔍</button>
+                <button type="button" class="icon-btn" onclick="selectIcon('🔎')">🔎</button>
+                <button type="button" class="icon-btn" onclick="selectIcon('👁️')">👁️</button>
+                <button type="button" class="icon-btn" onclick="selectIcon('👀')">👀</button>
+                <button type="button" class="icon-btn" onclick="selectIcon('🕵️')">🕵️</button>
+                <button type="button" class="icon-btn" onclick="selectIcon('🚨')">🚨</button>
+                <button type="button" class="icon-btn" onclick="selectIcon('🚫')">🚫</button>
+                <button type="button" class="icon-btn" onclick="selectIcon('⛔')">⛔</button>
+                <button type="button" class="icon-btn" onclick="selectIcon('🔞')">🔞</button>
+            </div>
+            
+            <div class="icon-category">📊 Data & Charts</div>
+            <div class="icon-row">
+                <button type="button" class="icon-btn" onclick="selectIcon('📊')">📊</button>
+                <button type="button" class="icon-btn" onclick="selectIcon('📈')">📈</button>
+                <button type="button" class="icon-btn" onclick="selectIcon('📉')">📉</button>
+                <button type="button" class="icon-btn" onclick="selectIcon('💹')">💹</button>
+                <button type="button" class="icon-btn" onclick="selectIcon('🗃️')">🗃️</button>
+                <button type="button" class="icon-btn" onclick="selectIcon('🗓️')">🗓️</button>
+                <button type="button" class="icon-btn" onclick="selectIcon('📅')">📅</button>
+                <button type="button" class="icon-btn" onclick="selectIcon('📆')">📆</button>
+                <button type="button" class="icon-btn" onclick="selectIcon('🕐')">🕐</button>
+                <button type="button" class="icon-btn" onclick="selectIcon('⏰')">⏰</button>
+                <button type="button" class="icon-btn" onclick="selectIcon('⏱️')">⏱️</button>
+                <button type="button" class="icon-btn" onclick="selectIcon('⏳')">⏳</button>
+                <button type="button" class="icon-btn" onclick="selectIcon('🧮')">🧮</button>
+                <button type="button" class="icon-btn" onclick="selectIcon('🔢')">🔢</button>
+                <button type="button" class="icon-btn" onclick="selectIcon('💯')">💯</button>
+                <button type="button" class="icon-btn" onclick="selectIcon('➕')">➕</button>
+            </div>
+            
+            <div class="icon-category">🎨 Design & Media</div>
+            <div class="icon-row">
+                <button type="button" class="icon-btn" onclick="selectIcon('🎨')">🎨</button>
+                <button type="button" class="icon-btn" onclick="selectIcon('🖼️')">🖼️</button>
+                <button type="button" class="icon-btn" onclick="selectIcon('🎬')">🎬</button>
+                <button type="button" class="icon-btn" onclick="selectIcon('📷')">📷</button>
+                <button type="button" class="icon-btn" onclick="selectIcon('📸')">📸</button>
+                <button type="button" class="icon-btn" onclick="selectIcon('📹')">📹</button>
+                <button type="button" class="icon-btn" onclick="selectIcon('🎥')">🎥</button>
+                <button type="button" class="icon-btn" onclick="selectIcon('📺')">📺</button>
+                <button type="button" class="icon-btn" onclick="selectIcon('🎵')">🎵</button>
+                <button type="button" class="icon-btn" onclick="selectIcon('🎶')">🎶</button>
+                <button type="button" class="icon-btn" onclick="selectIcon('🎤')">🎤</button>
+                <button type="button" class="icon-btn" onclick="selectIcon('🎧')">🎧</button>
+                <button type="button" class="icon-btn" onclick="selectIcon('🎮')">🎮</button>
+                <button type="button" class="icon-btn" onclick="selectIcon('🕹️')">🕹️</button>
+                <button type="button" class="icon-btn" onclick="selectIcon('🎲')">🎲</button>
+                <button type="button" class="icon-btn" onclick="selectIcon('🧩')">🧩</button>
+            </div>
+            
+            <div class="icon-category">💰 Business & Money</div>
+            <div class="icon-row">
+                <button type="button" class="icon-btn" onclick="selectIcon('💰')">💰</button>
+                <button type="button" class="icon-btn" onclick="selectIcon('💵')">💵</button>
+                <button type="button" class="icon-btn" onclick="selectIcon('💴')">💴</button>
+                <button type="button" class="icon-btn" onclick="selectIcon('💶')">💶</button>
+                <button type="button" class="icon-btn" onclick="selectIcon('💷')">💷</button>
+                <button type="button" class="icon-btn" onclick="selectIcon('💳')">💳</button>
+                <button type="button" class="icon-btn" onclick="selectIcon('💎')">💎</button>
+                <button type="button" class="icon-btn" onclick="selectIcon('🏦')">🏦</button>
+                <button type="button" class="icon-btn" onclick="selectIcon('🏢')">🏢</button>
+                <button type="button" class="icon-btn" onclick="selectIcon('🏠')">🏠</button>
+                <button type="button" class="icon-btn" onclick="selectIcon('🏡')">🏡</button>
+                <button type="button" class="icon-btn" onclick="selectIcon('🏭')">🏭</button>
+                <button type="button" class="icon-btn" onclick="selectIcon('🏗️')">🏗️</button>
+                <button type="button" class="icon-btn" onclick="selectIcon('🛒')">🛒</button>
+                <button type="button" class="icon-btn" onclick="selectIcon('🛍️')">🛍️</button>
+                <button type="button" class="icon-btn" onclick="selectIcon('🎁')">🎁</button>
+            </div>
+            
+            <div class="icon-category">🚗 Transport & Travel</div>
+            <div class="icon-row">
+                <button type="button" class="icon-btn" onclick="selectIcon('🚗')">🚗</button>
+                <button type="button" class="icon-btn" onclick="selectIcon('🚕')">🚕</button>
+                <button type="button" class="icon-btn" onclick="selectIcon('🚌')">🚌</button>
+                <button type="button" class="icon-btn" onclick="selectIcon('🚄')">🚄</button>
+                <button type="button" class="icon-btn" onclick="selectIcon('✈️')">✈️</button>
+                <button type="button" class="icon-btn" onclick="selectIcon('🚁')">🚁</button>
+                <button type="button" class="icon-btn" onclick="selectIcon('🚢')">🚢</button>
+                <button type="button" class="icon-btn" onclick="selectIcon('🛸')">🛸</button>
+                <button type="button" class="icon-btn" onclick="selectIcon('🗺️')">🗺️</button>
+                <button type="button" class="icon-btn" onclick="selectIcon('🧭')">🧭</button>
+                <button type="button" class="icon-btn" onclick="selectIcon('📍')">📍</button>
+                <button type="button" class="icon-btn" onclick="selectIcon('🏁')">🏁</button>
+                <button type="button" class="icon-btn" onclick="selectIcon('🎌')">🎌</button>
+                <button type="button" class="icon-btn" onclick="selectIcon('🏳️')">🏳️</button>
+                <button type="button" class="icon-btn" onclick="selectIcon('🚩')">🚩</button>
+                <button type="button" class="icon-btn" onclick="selectIcon('⚓')">⚓</button>
+            </div>
+            
+            <div class="icon-category">🔴 Status & Symbols</div>
+            <div class="icon-row">
+                <button type="button" class="icon-btn" onclick="selectIcon('✅')">✅</button>
+                <button type="button" class="icon-btn" onclick="selectIcon('❌')">❌</button>
+                <button type="button" class="icon-btn" onclick="selectIcon('⭐')">⭐</button>
+                <button type="button" class="icon-btn" onclick="selectIcon('🌟')">🌟</button>
+                <button type="button" class="icon-btn" onclick="selectIcon('💫')">💫</button>
+                <button type="button" class="icon-btn" onclick="selectIcon('✨')">✨</button>
+                <button type="button" class="icon-btn" onclick="selectIcon('🎯')">🎯</button>
+                <button type="button" class="icon-btn" onclick="selectIcon('💡')">💡</button>
+                <button type="button" class="icon-btn" onclick="selectIcon('🔥')">🔥</button>
+                <button type="button" class="icon-btn" onclick="selectIcon('💥')">💥</button>
+                <button type="button" class="icon-btn" onclick="selectIcon('❤️')">❤️</button>
+                <button type="button" class="icon-btn" onclick="selectIcon('💚')">💚</button>
+                <button type="button" class="icon-btn" onclick="selectIcon('💙')">💙</button>
+                <button type="button" class="icon-btn" onclick="selectIcon('💜')">💜</button>
+                <button type="button" class="icon-btn" onclick="selectIcon('🖤')">🖤</button>
+                <button type="button" class="icon-btn" onclick="selectIcon('🤍')">🤍</button>
+            </div>
+            
+            <div class="icon-category">🔴 Colored Circles</div>
+            <div class="icon-row">
+                <button type="button" class="icon-btn" onclick="selectIcon('🔴')">🔴</button>
+                <button type="button" class="icon-btn" onclick="selectIcon('🟠')">🟠</button>
+                <button type="button" class="icon-btn" onclick="selectIcon('🟡')">🟡</button>
+                <button type="button" class="icon-btn" onclick="selectIcon('🟢')">🟢</button>
+                <button type="button" class="icon-btn" onclick="selectIcon('🔵')">🔵</button>
+                <button type="button" class="icon-btn" onclick="selectIcon('🟣')">🟣</button>
+                <button type="button" class="icon-btn" onclick="selectIcon('🟤')">🟤</button>
+                <button type="button" class="icon-btn" onclick="selectIcon('⚫')">⚫</button>
+                <button type="button" class="icon-btn" onclick="selectIcon('⚪')">⚪</button>
+                <button type="button" class="icon-btn" onclick="selectIcon('🔶')">🔶</button>
+                <button type="button" class="icon-btn" onclick="selectIcon('🔷')">🔷</button>
+                <button type="button" class="icon-btn" onclick="selectIcon('🔸')">🔸</button>
+                <button type="button" class="icon-btn" onclick="selectIcon('🔹')">🔹</button>
+                <button type="button" class="icon-btn" onclick="selectIcon('▶️')">▶️</button>
+                <button type="button" class="icon-btn" onclick="selectIcon('⏸️')">⏸️</button>
+                <button type="button" class="icon-btn" onclick="selectIcon('⏹️')">⏹️</button>
+            </div>
+            
+            <div class="icon-category">🦁 Animals & Nature</div>
+            <div class="icon-row">
+                <button type="button" class="icon-btn" onclick="selectIcon('🐶')">🐶</button>
+                <button type="button" class="icon-btn" onclick="selectIcon('🐱')">🐱</button>
+                <button type="button" class="icon-btn" onclick="selectIcon('🦊')">🦊</button>
+                <button type="button" class="icon-btn" onclick="selectIcon('🦁')">🦁</button>
+                <button type="button" class="icon-btn" onclick="selectIcon('🐼')">🐼</button>
+                <button type="button" class="icon-btn" onclick="selectIcon('🐸')">🐸</button>
+                <button type="button" class="icon-btn" onclick="selectIcon('🦋')">🦋</button>
+                <button type="button" class="icon-btn" onclick="selectIcon('🐳')">🐳</button>
+                <button type="button" class="icon-btn" onclick="selectIcon('🦈')">🦈</button>
+                <button type="button" class="icon-btn" onclick="selectIcon('🦅')">🦅</button>
+                <button type="button" class="icon-btn" onclick="selectIcon('🌲')">🌲</button>
+                <button type="button" class="icon-btn" onclick="selectIcon('🌴')">🌴</button>
+                <button type="button" class="icon-btn" onclick="selectIcon('🌸')">🌸</button>
+                <button type="button" class="icon-btn" onclick="selectIcon('🌺')">🌺</button>
+                <button type="button" class="icon-btn" onclick="selectIcon('🍀')">🍀</button>
+                <button type="button" class="icon-btn" onclick="selectIcon('🌈')">🌈</button>
+            </div>
+            
+            <div class="icon-category">🍕 Food & Drink</div>
+            <div class="icon-row">
+                <button type="button" class="icon-btn" onclick="selectIcon('🍕')">🍕</button>
+                <button type="button" class="icon-btn" onclick="selectIcon('🍔')">🍔</button>
+                <button type="button" class="icon-btn" onclick="selectIcon('🍟')">🍟</button>
+                <button type="button" class="icon-btn" onclick="selectIcon('🌮')">🌮</button>
+                <button type="button" class="icon-btn" onclick="selectIcon('🍣')">🍣</button>
+                <button type="button" class="icon-btn" onclick="selectIcon('🍰')">🍰</button>
+                <button type="button" class="icon-btn" onclick="selectIcon('🍩')">🍩</button>
+                <button type="button" class="icon-btn" onclick="selectIcon('🍺')">🍺</button>
+                <button type="button" class="icon-btn" onclick="selectIcon('🍷')">🍷</button>
+                <button type="button" class="icon-btn" onclick="selectIcon('☕')">☕</button>
+                <button type="button" class="icon-btn" onclick="selectIcon('🧃')">🧃</button>
+                <button type="button" class="icon-btn" onclick="selectIcon('🍎')">🍎</button>
+                <button type="button" class="icon-btn" onclick="selectIcon('🍊')">🍊</button>
+                <button type="button" class="icon-btn" onclick="selectIcon('🍋')">🍋</button>
+                <button type="button" class="icon-btn" onclick="selectIcon('🍇')">🍇</button>
+                <button type="button" class="icon-btn" onclick="selectIcon('🥑')">🥑</button>
+            </div>
+        </div>
+    </div>
+    <div class="form-group" style="flex: 1;">
+        <label>Color</label>
+        <div class="colors">
+            <div class="color-btn selected" style="background:#3b82f6" data-color="#3b82f6" onclick="selectColor(this)"></div>
+            <div class="color-btn" style="background:#22c55e" data-color="#22c55e" onclick="selectColor(this)"></div>
+            <div class="color-btn" style="background:#f97316" data-color="#f97316" onclick="selectColor(this)"></div>
+            <div class="color-btn" style="background:#a855f7" data-color="#a855f7" onclick="selectColor(this)"></div>
+        </div>
+        <div class="colors" style="margin-top: 8px;">
+            <div class="color-btn" style="background:#ef4444" data-color="#ef4444" onclick="selectColor(this)"></div>
+            <div class="color-btn" style="background:#ec4899" data-color="#ec4899" onclick="selectColor(this)"></div>
+            <div class="color-btn" style="background:#14b8a6" data-color="#14b8a6" onclick="selectColor(this)"></div>
+            <div class="color-btn" style="background:#eab308" data-color="#eab308" onclick="selectColor(this)"></div>
+        </div>
+        <div class="colors" style="margin-top: 8px;">
+            <div class="color-btn" style="background:#64748b" data-color="#64748b" onclick="selectColor(this)"></div>
+            <div class="color-btn" style="background:#1e293b" data-color="#1e293b" onclick="selectColor(this)"></div>
+            <div class="color-btn" style="background:#7c3aed" data-color="#7c3aed" onclick="selectColor(this)"></div>
+            <div class="color-btn" style="background:#059669" data-color="#059669" onclick="selectColor(this)"></div>
+        </div>
+    </div>
+</div>
+</div><!-- end content-area -->
+
+<div class="buttons">
+    <div class="left-btns">
+        {{EDIT_BUTTONS}}
+    </div>
+    <div class="right-btns">
+        <button class="btn btn-cancel" onclick="cancel()">Cancel</button>
+        <button class="btn btn-save" onclick="save()">Save</button>
+    </div>
+</div>
+
+<script>
+let selectedColor = '#3b82f6';
+const existingLink = {{LINK_JSON}};
+
+function typeChanged() {
+    const type = document.getElementById('actionType').value;
+    document.querySelectorAll('.type-fields').forEach(el => el.classList.remove('active'));
+    
+    if (type === 'App') {
+        document.getElementById('fields-app').classList.add('active');
+    } else if (type === 'VS Code' || type === 'Finder') {
+        document.getElementById('fields-folder').classList.add('active');
+    } else if (type === 'Chrome') {
+        document.getElementById('fields-url').classList.add('active');
+    } else if (type === 'Terminal') {
+        document.getElementById('fields-ssh').classList.add('active');
+    } else if (type === 'Shell') {
+        document.getElementById('fields-shell').classList.add('active');
+    }
+}
+
+function sshTypeChanged() {
+    const sshType = document.getElementById('sshType').value;
+    document.getElementById('ssh-fields').style.display = sshType === 'ssh' ? 'block' : 'none';
+    document.getElementById('terminal-command-field').style.display = sshType === 'command' ? 'block' : 'none';
+}
+
+function selectColor(el) {
+    document.querySelectorAll('.color-btn').forEach(b => b.classList.remove('selected'));
+    el.classList.add('selected');
+    selectedColor = el.dataset.color;
+}
+
+function selectIcon(icon) {
+    document.getElementById('icon').value = icon;
+}
+
+function browse() {
+    const actionType = document.getElementById('actionType').value;
+    window.webkit.messageHandlers.swift.postMessage({ action: 'browse', actionType: actionType });
+}
+
+function browseApp() {
+    window.webkit.messageHandlers.swift.postMessage({ action: 'browseApp' });
+}
+
+function setPath(path) {
+    document.getElementById('folderPath').value = path;
+}
+
+function setAppName(name) {
+    document.getElementById('appName').value = name;
+}
+
+function getPayload() {
+    const type = document.getElementById('actionType').value;
+    if (type === 'App') {
+        return document.getElementById('appName').value;
+    } else if (type === 'VS Code' || type === 'Finder') {
+        return document.getElementById('folderPath').value;
+    } else if (type === 'Chrome') {
+        return document.getElementById('urlPath').value;
+    } else if (type === 'Terminal') {
+        const sshType = document.getElementById('sshType').value;
+        if (sshType === 'ssh') {
+            const host = document.getElementById('sshHost').value;
+            const user = document.getElementById('sshUser').value;
+            const port = document.getElementById('sshPort').value;
+            let cmd = 'ssh ';
+            if (port && port !== '22') cmd += '-p ' + port + ' ';
+            if (user) cmd += user + '@';
+            cmd += host;
+            return cmd;
+        } else {
+            return document.getElementById('terminalCmd').value;
+        }
+    } else if (type === 'Shell') {
+        return document.getElementById('shellCmd').value;
+    }
+    return '';
+}
+
+function save() {
+    const title = document.getElementById('title').value.trim();
+    if (!title) { alert('Title is required'); return; }
+    
+    const payload = getPayload();
+    if (!payload) { alert('Please fill in the required fields'); return; }
+    
+    window.webkit.messageHandlers.swift.postMessage({
+        action: 'save',
+        title: title,
+        actionType: document.getElementById('actionType').value,
+        payload: payload,
+        icon: document.getElementById('icon').value || '🔗',
+        color: selectedColor
+    });
+}
+
+function cancel() {
+    window.webkit.messageHandlers.swift.postMessage({ action: 'cancel' });
+}
+
+function deleteLink() {
+    window.webkit.messageHandlers.swift.postMessage({ action: 'delete' });
+}
+
+function duplicateLink() {
+    const title = document.getElementById('title').value.trim();
+    if (!title) { alert('Title is required'); return; }
+    
+    const payload = getPayload();
+    if (!payload) { alert('Please fill in the required fields'); return; }
+    
+    window.webkit.messageHandlers.swift.postMessage({
+        action: 'duplicate',
+        title: title + ' (copy)',
+        actionType: document.getElementById('actionType').value,
+        payload: payload,
+        icon: document.getElementById('icon').value || '🔗',
+        color: selectedColor
+    });
+}
+
+// Load existing data
+if (existingLink) {
+    document.getElementById('title').value = existingLink.title;
+    document.getElementById('actionType').value = existingLink.actionType;
+    document.getElementById('icon').value = existingLink.icon;
+    selectedColor = existingLink.color;
+    document.querySelectorAll('.color-btn').forEach(b => {
+        b.classList.toggle('selected', b.dataset.color === selectedColor);
+    });
+    
+    typeChanged();
+    
+    const type = existingLink.actionType;
+    const payload = existingLink.payload;
+    
+    if (type === 'App') {
+        document.getElementById('appName').value = payload;
+    } else if (type === 'VS Code' || type === 'Finder') {
+        document.getElementById('folderPath').value = payload;
+    } else if (type === 'Chrome') {
+        document.getElementById('urlPath').value = payload;
+    } else if (type === 'Terminal') {
+        if (payload.startsWith('ssh ')) {
+            document.getElementById('sshType').value = 'ssh';
+            // Parse ssh command
+            const match = payload.match(/ssh\s+(?:-p\s+(\d+)\s+)?(?:([^@]+)@)?(.+)/);
+            if (match) {
+                if (match[1]) document.getElementById('sshPort').value = match[1];
+                if (match[2]) document.getElementById('sshUser').value = match[2];
+                if (match[3]) document.getElementById('sshHost').value = match[3];
+            }
+        } else {
+            document.getElementById('sshType').value = 'command';
+            document.getElementById('terminalCmd').value = payload;
+        }
+        sshTypeChanged();
+    } else if (type === 'Shell') {
+        document.getElementById('shellCmd').value = payload;
+    }
+} else {
+    typeChanged();
+}
+</script>
+</body>
+</html>
